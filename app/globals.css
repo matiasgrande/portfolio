@@ -1,0 +1,1062 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Design tokens — traducción exacta de DESIGN.md ("The Statement Page").
+   No reinterpretar valores acá: si un color o medida cambia, cambia en
+   DESIGN.md primero y se refleja acá y en lib/tokens.ts.
+   ========================================================================== */
+:root {
+  color-scheme: light; /* el sistema es de fondo claro fijo, no sigue el OS */
+
+  /* Colores — DESIGN.md § Colors */
+  --bone: #FAF7F3;
+  --ink: #111110;
+  --navy: #16325C;
+  --gray: #6B6B66;
+  --hairline: #DEDAD3;
+  /* Reposo de las palabras del manifiesto todavía sin llenar. Tinta al 10%,
+     calcado de la referencia (que usa negro al 10%): el contraste entre lo
+     ya dicho y lo que falta es casi todo el efecto, y un gris sólido lo
+     aplana. Es un estado transitorio —la frase termina entera en tinta y en
+     motion reducido nace así— pero mientras dura queda por debajo del
+     mínimo AA. Decisión explícita de fidelidad a la referencia. */
+  --word-rest: rgba(17, 17, 16, 0.10);
+  /* Hairline equivalente dentro de un campo navy a página completa (sección
+     de contacto): Hueso a baja opacidad, misma técnica que el resto del
+     sistema usa para líneas silenciosas, nunca protagonistas. */
+  --hairline-on-navy: rgba(250, 247, 243, 0.24);
+
+  /* Espaciado — DESIGN.md § Layout: escala 8 / 16 / 24 / 48 / 96 / 160. */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 48px;
+  --space-5: 96px;
+  --space-6: 160px;
+
+  /* Breakpoints — documentación y consumo JS (lib/tokens.ts). CSS no admite
+     var() dentro de una media feature, así que los @media de este archivo
+     repiten estos valores en literal; mantenerlos sincronizados a mano. */
+  --bp-sm: 640px;
+  --bp-md: 900px;
+  --bp-lg: 1280px;
+}
+
+/* Propiedades animadas por GSAP (components/SiteMotion.tsx). Se registran con
+   @property por dos razones: el tipo `<number>` garantiza que el navegador
+   las trate como números y no como texto opaco, y el `initial-value` es el
+   estado FINAL — sin JS, sin GSAP o con motion reducido, las hairlines están
+   dibujadas y el campo Navy está lleno. Nada queda a medio camino.
+
+   `inherits: true` es obligatorio: quien las consume es un ::before, y un
+   pseudo-elemento hereda de su elemento originante. Con `inherits: false` el
+   ::before se quedaría con el initial-value y la animación no lo alcanzaría
+   nunca. */
+@property --rule {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+@property --field {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+/* Grado de "llenado" de cada palabra del manifiesto: 0 = gris de reposo,
+   1 = color final. La animación mueve ESTE número y nunca la propiedad
+   `color`, para que sea idempotente — GSAP puede reconstruirse las veces que
+   haga falta (doble montaje de Strict Mode, cambio de idioma) sin riesgo de
+   leer como "color final" un gris que había dejado una corrida anterior. */
+@property --fill {
+  syntax: "<number>";
+  /* Hereda para que la puntuación anidada en la última palabra (.word__tail)
+     se llene con ella en vez de nacer ya en su color final. */
+  inherits: true;
+  initial-value: 1;
+}
+
+/* La cubierta arranca oculta y la destapa la coreografía, para que no se vea
+   entera y desaparezca de golpe cuando GSAP toma el control. La clase la pone
+   un script inline en <html> antes del primer pintado y la saca la propia
+   coreografía; si el JS nunca corre, ese mismo script la retira por timeout.
+   Sin clase — sin JS, o con el script bloqueado — el hero se ve normal. */
+.motion-hold [data-motion-hold] {
+  visibility: hidden;
+}
+
+/* Mismo mecanismo que la regla de arriba, para un problema distinto: el
+   export estático siempre sirve el HTML en español (DEFAULT_LOCALE en
+   LanguageProvider.tsx) porque no hay servidor que lo personalice por
+   visitante. El script LOCALE_HOLD (app/layout.tsx) agrega esta clase a
+   <html> ANTES del primer pintado, solo si el locale guardado en
+   localStorage difiere de "es", y LanguageProvider la saca en el mismo
+   commit en que el texto ya está en el idioma correcto — o, si el JS de la
+   app nunca corre, el propio script la saca por timeout. A diferencia de
+   `.motion-hold [data-motion-hold]`, que tapa solo el hero, acá cualquier
+   nodo del sitio puede tener texto sin traducir todavía, así que se oculta
+   el body entero. Visitante nuevo, o con "es" guardado: la clase nunca se
+   agrega, cero hold. */
+html.locale-hold body {
+  visibility: hidden;
+}
+
+/* Puente a Tailwind v4: expone los mismos tokens como utilidades
+   (bg-bone, text-ink, border-navy, font-sans, etc.) sin duplicar valores —
+   todo referencia a :root de arriba. */
+@theme inline {
+  --color-bone: var(--bone);
+  --color-ink: var(--ink);
+  --color-navy: var(--navy);
+  --color-gray: var(--gray);
+  --color-hairline: var(--hairline);
+
+  --font-sans: var(--font-sans-src), "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Breakpoints de Tailwind (DESIGN.md § Layout: 640 / 900 / 1280) — NO puede
+   ir en `@theme inline`: los prefijos responsive (`sm:`, `md:`, `lg:`) se
+   compilan a `@media` en build time, y `@media` no admite `var()`, así que
+   estos valores tienen que quedar en literal. Sin este override, el `md:`
+   por defecto de Tailwind es 768px, no los 900px del contrato — se
+   redefine acá para que `sm:`/`md:`/`lg:` en cualquier archivo del
+   proyecto mapeen exactamente a los breakpoints de DESIGN.md. */
+@theme {
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 900px;
+  --breakpoint-lg: 1280px;
+}
+
+/* ==========================================================================
+   Reset — reglas duras del contrato. No son sugerencias.
+   ========================================================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  /* Radio cero en todo el sistema, con una sola excepción declarada más
+     abajo (.nav-pill). !important es deliberado: es la regla de identidad
+     más rígida del sistema y la que más rápido se rompe por reflejo. */
+  border-radius: 0 !important;
+  /* Sistema plano, cero sombras, en ningún estado (DESIGN.md § Elevation). */
+  box-shadow: none !important;
+}
+
+.nav-pill,
+.nav-pill * {
+  border-radius: 999px !important;
+}
+
+/* Segunda —y última— excepción al radio cero: la tarjeta 3D de Bio.
+   Medido en la referencia: 20px sobre 400px de ancho, un 5%. Un rectángulo
+   de esquina viva leído como fotografía se ve como un recorte pegado
+   encima de la página; con este radio la foto se integra sin volverse una
+   píldora. El `!important` es para ganarle al reset de arriba, mismo
+   mecanismo que la nav pill. Va también en las caras y en la imagen porque
+   cada una recorta su propio contenido. */
+.bio-card,
+.bio-card__face,
+.bio-card__img {
+  border-radius: 20px !important;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--bone);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd {
+  margin: 0;
+}
+
+ul[class], ol[class] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+button, input, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Links (DESIGN.md § Components): subrayado de 1px con offset, tinta por
+   defecto, Navy solo al interactuar — así el acento se gana con el hover en
+   vez de sentarse estático en cada línea de texto (The Scarcity Rule). */
+a {
+  color: var(--ink);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+  transition: color 200ms ease;
+}
+
+a:hover,
+a:focus-visible {
+  color: var(--navy);
+}
+
+/* Foco visible y accesible — nunca `outline: none` sin reemplazo.
+   :focus:not(:focus-visible) solo suprime el anillo en clicks de mouse;
+   el teclado siempre conserva el reemplazo de abajo. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   Skip link — accesibilidad de línea de base, no parte del contrato visual.
+   Oculto fuera de pantalla hasta que recibe foco de teclado.
+   ========================================================================== */
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: var(--space-2);
+  left: var(--space-2);
+  transform: translateY(-150%);
+  background-color: var(--ink);
+  color: var(--bone);
+  padding: var(--space-2) var(--space-3);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 150ms ease;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline-color: var(--bone);
+}
+
+/* ==========================================================================
+   Shell de layout
+   ========================================================================== */
+/* `.wrap`, no `.container`: Tailwind reserva `container` como nombre de
+   utilidad — con esa clase literal en el JSX, el escáner de contenido de
+   Tailwind generaba su propio `.container` responsive (max-width en cada
+   breakpoint) en paralelo al de acá, dos reglas con la misma especificidad
+   compitiendo por la misma clase. Nombre distinto, cero ambigüedad. */
+.wrap {
+  max-width: var(--bp-lg);
+  margin-inline: auto;
+  padding-inline: clamp(24px, 5vw, 96px);
+}
+
+/* Ritmo del scroll (DESIGN.md § Layout): cada sección ocupa como mínimo
+   100vh, alineada al centro vertical salvo el hero (.section--hero). */
+.section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  /* svh evita el salto por la barra de direcciones en mobile; 100vh queda
+     arriba como fallback para navegadores sin soporte. */
+  min-height: 100svh;
+  padding-block: var(--space-5);
+}
+
+.section--hero {
+  /* Única sección no centrada verticalmente (DESIGN.md § Layout): el tipo
+     se ancla abajo y deja el aire arriba, bajo la nav pill flotante. */
+  justify-content: flex-end;
+  /* El colchón inferior sigue a la altura del viewport en vez de quedar
+     fijo en 160px: con el Display a 176px en dos líneas más el rol en tres,
+     un valor fijo empujaba el hero a 834px y en una laptop de 13" (~727px
+     de viewport) el CTA quedaba cortado abajo del pliegue. */
+  padding-bottom: clamp(var(--space-4), 9vh, var(--space-6));
+  padding-top: var(--space-5);
+}
+
+@media (max-width: 639px) {
+  /* En teléfono el anclaje abajo deja media pantalla muerta arriba: el
+     contenido del hero mide ~500px contra un viewport de 844. Centrado, el
+     aire se reparte y la composición se sostiene. */
+  .section--hero {
+    justify-content: center;
+    padding-bottom: var(--space-5);
+  }
+}
+
+/* Campo navy a página completa — única región donde el navy supera el 5%
+   de área (The Scarcity Rule, DESIGN.md § Colors): la sección de contacto.
+   Inversión de tinta obligatoria: la regla global `a { color: var(--navy) }`
+   dejaría los links en navy sobre navy (~1.3:1, invisible) — acá la tinta es
+   siempre Hueso. */
+.section--contact {
+  /* El campo no es el background de la sección sino una capa propia detrás
+     del contenido, para que pueda escalar en Y y "derramarse" desde el borde
+     superior conforme la sección entra (components/SiteMotion.tsx). `isolate`
+     crea el contexto de apilado que mantiene ese z-index: -1 encerrado acá y
+     no detrás del fondo de la página. */
+  background-color: transparent;
+  color: var(--bone);
+  isolation: isolate;
+  /* Aire más ajustado que el resto del sitio (DESIGN.md § Contacto — eje
+     centrado y una sola pantalla): el bloque entero, de titular a firma,
+     tiene que caber en 100svh a partir de 390×745. `.section--contact::before`
+     (abajo) cubre por `inset: 0` desde el borde del padding-box, así que
+     achicar el padding no abre una franja hueso entre el campo Navy y el
+     borde de la sección — sigue tapando hasta el final.
+
+     El padding SUPERIOR no puede bajar tanto como el inferior: `.nav-pill` es
+     `position: fixed` y flota por encima de todo, así que el contenido que
+     quede arriba de su borde inferior le pasa por debajo. Medido con el
+     padding parejo de 16px: en 375×667 el titular arrancaba en y=41 y en
+     360×640 en y=27, contra una pill que llega a 48 — tapada en los dos
+     casos. Los 72px son ese borde (48) más aire suficiente para que el
+     titular no se lea pegado a la pill.
+
+     La sección usa `min-height`, no `height`: si en una pantalla muy baja el
+     contenido más esta zona segura no entran, la sección crece y aparece
+     scroll. Es el resultado correcto — un titular tapado es peor defecto que
+     unos píxeles de scroll. */
+  padding-top: 72px;
+  padding-bottom: var(--space-2);
+}
+
+/* Pantallas muy bajas (Android chico de 640px, iPhone SE de 667). Medido: con
+   el gap de 16px el bloque mide 585px, y sumados los 72 de zona segura bajo la
+   pill más los 16 de abajo da 673 — 33 más que los 640 disponibles, así que la
+   sección crecía y el titular volvía a meterse debajo de la pill (−8px de
+   solapamiento). Bajar la separación entre bloques a 8px recupera 32 de esos
+   33 píxeles, que es exactamente lo que falta.
+   Va por ALTURA y no por ancho: el problema es de presupuesto vertical, y un
+   teléfono ancho pero bajo (o una ventana de escritorio achicada) lo tiene
+   igual. Arriba de 700px de alto no aplica — ahí sobra aire y apretar el gap
+   solo empeoraría la respiración. */
+@media (max-height: 700px) {
+  .section--contact .wrap {
+    gap: var(--space-1);
+  }
+}
+
+.section--contact::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* `min-height: 100svh` en `.section` puede resolver a un valor fraccionario
+     (ej. 900.883px sobre un viewport de 900) y este campo hereda ese alto de
+     `inset: 0`. El redondeo del navegador puede dejar menos de 1px de Hueso
+     (el fondo del body, DESIGN.md § Colors: "el suelo") asomando debajo del
+     campo Navy al final del documento. Un par de px de sobra hacia abajo lo
+     cubre sin percibirse — `transform-origin: top` sigue ahí, así que el
+     derrame de `--field` (abajo) no cambia: la única diferencia es que el
+     100% ahora tapa un poco más allá del borde inferior real de la sección. */
+  bottom: -4px;
+  z-index: -1;
+  background-color: var(--navy);
+  transform: scaleY(var(--field));
+  transform-origin: top center;
+}
+
+.section--contact :is(h1, h2, h3, p, dt, dd, span) {
+  color: var(--bone);
+}
+
+.section--contact a {
+  color: var(--bone);
+  text-decoration-color: var(--hairline-on-navy);
+}
+
+/* Bulletproof contra el bug ya visto en la versión anterior: el hover
+   global `a:hover { color: var(--navy) }` (Reset, arriba) no puede ganarle
+   a esta regla por especificidad — si lo hiciera, un link en hover acá
+   quedaría en Navy sobre Navy, invisible. No depender del orden de
+   declaración para esto. */
+.section--contact a:hover,
+.section--contact a:focus-visible {
+  color: var(--bone);
+  text-decoration-color: var(--bone);
+}
+
+.section--contact :focus-visible {
+  outline-color: var(--bone);
+}
+
+/* Divisores dentro del campo Navy: Hueso a baja opacidad en vez de la
+   hairline hueso-sobre-hueso, que ahí sería invisible. Mayor especificidad
+   que la regla base de .hr-row::before, así que no depende del orden. */
+.section--contact .hr-row::before,
+.section--contact .hr-row:last-child::after {
+  background-color: var(--hairline-on-navy);
+}
+
+/* Filas del formulario más ajustadas que `.hr-row` en el resto del sitio
+   (DESIGN.md § Contacto — eje centrado y una sola pantalla). Escopeado a
+   `.section--contact` para no tocar las mismas filas en "En curso" ni en
+   capacidades, que viven en otras secciones y no están en este presupuesto. */
+.section--contact .hr-row {
+  padding-block: var(--space-2);
+}
+
+/* ==========================================================================
+   Nav pill — la firma del sistema (DESIGN.md § Shapes, § Components).
+   Único elemento con radio de todo el sitio. Fondo Tinta, texto Hueso,
+   fija arriba y centrada. El translateX(-50%) de acá es el estado sin JS;
+   con la coreografía activa lo reemplaza GSAP por un xPercent equivalente
+   para poder componerle la escala de la contracción al scroll
+   (components/SiteMotion.tsx).
+   ========================================================================== */
+.nav-pill {
+  position: fixed;
+  z-index: 80;
+  top: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background-color: var(--ink);
+  color: var(--bone);
+  padding: var(--space-2) var(--space-3);
+  line-height: 1;
+}
+
+.nav-pill__name {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  text-decoration: none;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 150ms ease;
+}
+
+.nav-pill__name:hover,
+.nav-pill__name:focus-visible {
+  color: var(--bone);
+  opacity: 0.72;
+}
+
+.nav-pill :focus-visible {
+  outline-color: var(--bone);
+}
+
+@media (max-width: 480px) {
+  .nav-pill {
+    gap: var(--space-3);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .nav-pill__name {
+    font-size: 0.8125rem;
+  }
+}
+
+/* ==========================================================================
+   Toggle de idioma — vive dentro de la nav pill, hereda su campo Tinta.
+   ========================================================================== */
+.language-toggle {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  color: var(--bone);
+  background-color: transparent;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.72;
+  transition: opacity 150ms ease;
+}
+
+.language-toggle:hover {
+  opacity: 1;
+}
+
+/* Área de toque de los dos controles de la píldora. Medido: el botón de
+   idioma cae en 17×13px y el nombre en 105×15px — los dos por debajo del
+   mínimo de 24×24 de WCAG 2.2 (2.5.8 Target Size). No se arregla con
+   `padding`: la píldora es un flex que crecería con él, y su silueta es la
+   forma firma del sistema (DESIGN.md § Shapes).
+
+   El pseudo-elemento estira un blanco invisible de 24×24 centrado sobre el
+   glifo, sin ocupar espacio en el layout. `width/height: 100%` deja que el
+   blanco siga al control cuando ya es más grande que el mínimo (el nombre en
+   ancho), y los `min-*` levantan el piso cuando no lo es. No viola The Flat
+   Rule: no pinta nada, solo recibe el puntero. */
+.nav-pill__name,
+.language-toggle {
+  position: relative;
+}
+
+.nav-pill__name::after,
+.language-toggle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+/* ==========================================================================
+   Escala tipográfica — traducción directa de DESIGN.md § Typography §
+   Hierarchy. Cinco niveles, cada uno una clase reusable que fija peso,
+   tamaño, interlineado y tracking. Nunca duplicar estos valores inline: si
+   la jerarquía cambia, cambia acá. El color NO va en estas clases (queda a
+   cargo de las utilidades de color — text-ink, text-navy, text-bone,
+   text-gray — para no acoplar tipografía a campo).
+   ========================================================================== */
+.text-display {
+  font-weight: 900;
+  font-size: clamp(4rem, 13vw, 11rem);
+  line-height: 0.86;
+  letter-spacing: -0.035em;
+}
+
+@media (max-width: 640px) {
+  /* En mobile, 13vw cae por debajo del piso de 4rem antes de este ajuste
+     (DESIGN.md § Layout): sin este override, clamp() fuerza el piso de
+     4rem/64px en pantallas angostas y el Display no cabe en una línea sin
+     desbordar. Piso más bajo, mismo tracking negativo. */
+  .text-display {
+    font-size: clamp(2.75rem, 13vw, 4rem);
+  }
+}
+
+.text-headline {
+  font-weight: 700;
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.text-title {
+  font-weight: 600;
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  line-height: 1.25;
+}
+
+.text-body {
+  font-weight: 400;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  max-width: 66ch;
+}
+
+.text-label {
+  font-weight: 500;
+  font-size: 0.8125rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   Bio — tarjeta 3D (DESIGN.md § Components → "Tarjeta 3D de Bio"). Replica
+   el hero-card de majd-portfolio.framer.website, medido por el usuario en
+   el navegador. La coreografía de scroll (pin + rotateY + scale, scrubbed)
+   vive en components/SiteMotion.tsx; acá solo el andamiaje visual:
+   perspectiva, las dos caras, y el estado FINAL sin JS.
+
+   Radio 0 y cero sombra, igual que el resto del sistema (DESIGN.md
+   § Shapes, § Elevation) — la profundidad la da la rotación 3D, nada más.
+
+   Estado sin JS / motion reducido: `.bio-card` no lleva rotateY ni scale en
+   su `transform` base — rotateY(0) y scale(1) son transforms identidad, se
+   omiten a propósito — y `.bio-card__face--front` no tiene rotación propia,
+   así que la cara de color queda visible y la trasera oculta por
+   `backface-visibility` sin que haga falta ninguna rama condicional de CSS.
+   Mismo patrón que `.nav-pill` (el transform estático de acá ES el estado
+   sin-JS, GSAP lo reemplaza en runtime) y no el de `--fill`/`--rule`/
+   `--field`: ahí el valor lo consume un ::before ajeno al elemento, acá
+   nada más que la propia tarjeta lo usa, así que no hace falta el
+   indirection de `@property`.
+   ========================================================================== */
+.bio-card-stage {
+  position: relative;
+  /* Aloja la tarjeta en su estado FINAL — no un viewport entero. La franja
+     medía 100vh fijos antes; con `items-end` en la grid (app/page.tsx) eso
+     hundía título y párrafos al fondo de una fila de 900px cuando el
+     contenido real mide una fracción de eso, dejando cientos de px de aire
+     muerto arriba de la bio. La franja ahora mide justo lo que la tarjeta
+     necesita para caber en su tamaño de llegada: su propio alto
+     (`clamp(300px, 50.7vh, 520px)`, igual que `.bio-card` abajo, para que
+     ambos deriven del mismo número si ese clamp cambia) más el `bottom:
+     2.2vh` que la separa del borde inferior de esta franja. Con este alto,
+     la tarjeta llena la franja de punta a punta al llegar a `scale: 1`, sin
+     sobrante propio — el aire alrededor de la composición lo reparte
+     `bioPinTop()` en SiteMotion.tsx como offset del PIN (centra la fila en
+     el viewport), no como alto extra acá: si el colchón viviera en esta
+     franja, quedaría siempre arriba y la fila entera se hundiría, que es
+     justamente el defecto que este alto compacto vino a corregir.
+     Lo que SiteMotion.tsx pinea de verdad es `#bio .wrap` (título + tarjeta
+     + párrafos, la fila entera de la grid de Bio) y no este elemento
+     directamente — así título y párrafos quedan clavados junto con la
+     tarjeta en vez de que el documento se los lleve mientras ella gira
+     sola. Sin pin (motion reducido, o debajo de 1280px — ver el JSDoc de
+     `choreograph` en SiteMotion.tsx) esto sigue siendo la misma franja
+     compacta — la altura extra del pin la agrega gsap al pinear (spacer),
+     nunca CSS estático. Abajo de 1280 no hay pin pero SÍ hay giro: la
+     tarjeta rota ligada al scroll dentro de esta misma franja, sin crecer,
+     así que el alto de acá le sirve igual sin cambio alguno. */
+  height: calc(clamp(300px, 50.7vh, 520px) + 2.2vh);
+  /* Ancla el ancho de la columna de la grid de Bio: el único hijo de acá es
+     absoluto y no aporta ancho propio, así que sin esto la columna del
+     grid colapsaría a 0. */
+  width: 100%;
+  /* Perspectiva en el ANCESTRO de las caras (no en la tarjeta misma) para
+     que el flip 3D tenga profundidad real. */
+  perspective: 1600px;
+}
+
+.bio-card {
+  position: absolute;
+  left: 50%;
+  /* Deriva del "top" medido en la referencia (72.2vh → 47.1vh) sin animar
+     `top` (layout thrash, prohibido). Con el origen de transformación
+     anclado ABAJO, el borde inferior medido en la referencia apenas se
+     mueve entre los dos extremos (97.9vh → 97.8vh) — crecer con `scale`
+     desde ese origen ya reproduce el ascenso, sin tocar `top` en ningún
+     momento. bottom = 100vh − 47.1vh (top final) − 50.7vh (alto final). */
+  bottom: 2.2vh;
+  height: clamp(300px, 50.7vh, 520px);
+  aspect-ratio: 400 / 536; /* proporción real de la foto futura */
+  transform-origin: 50% 100%;
+  transform: translateX(-50%);
+  transform-style: preserve-3d;
+}
+
+/* Abajo de `lg` la fila de Bio es una sola columna (app/page.tsx) y el
+   retrato deja de tener texto a los costados que lo justifique en el medio.
+   Centrado ahí la composición se lee rota: medido a 1279px, el cuerpo de
+   texto se queda en su medida (~700px) contra el borde izquierdo de un
+   `.wrap` de 1150px mientras el retrato se centra en el ancho completo — dos
+   ejes distintos en la misma columna. Alineado a la izquierda comparte eje
+   con el texto, que es el ritmo del resto de la página.
+
+   `left`/`transform` y no `margin`: la tarjeta es `position: absolute` dentro
+   de `.bio-card-stage`, así que el margen no la movería. En desktop el
+   `translateX(-50%)` lo vuelve a escribir gsap junto con el `xPercent: -50`
+   del pin (SiteMotion.tsx), fuera de esta media query. */
+@media (max-width: 1279px) {
+  .bio-card {
+    left: 0;
+    transform: none;
+  }
+}
+
+.bio-card__face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+/* La foto llena la cara entera. El `background-color` de cada cara queda
+   abajo como piso: si la imagen todavía no decodificó, la tarjeta gira con
+   su campo de color en vez de con un hueco transparente. */
+.bio-card__img {
+  object-fit: cover;
+  /* Obligatorio repetirlo acá y no confiar en la cara que la contiene: la
+     regla NO se hereda hacia los descendientes. Con las caras vacías (dos
+     bloques de color) alcanzaba con tenerla en `.bio-card__face`, pero al
+     meterles una imagen adentro, esa imagen se sigue pintando aunque su
+     cara esté de espaldas — y como la frontal va después en el DOM, tapaba
+     a la trasera SIEMPRE. Resultado: la cara en blanco y negro no se veía
+     en ningún fotograma del giro. */
+  backface-visibility: hidden;
+}
+
+.bio-card__face--back {
+  /* Trasera, blanco y negro — la Tinta hace de piso bajo la foto. */
+  background-color: var(--ink);
+  /* Pre-rotada 180° respecto del padre: cuando `.bio-card` está en 180°
+     (reposo inicial del scroll), esta cara queda en 360° = 0° = mirando al
+     visitante, y la frontal en 180° = de espaldas = oculta. */
+  transform: rotateY(180deg);
+}
+
+.bio-card__face--front {
+  /* Frontal, a color — la fotografía está bañada en Navy, así que el campo
+     Navy es literalmente su piso (segunda excepción a The Scarcity Rule,
+     DESIGN.md § Colors: acá el navy ES la fotografía, no un acento). Sin
+     rotación propia: coincide con el padre en 0° al final del scroll. */
+  background-color: var(--navy);
+}
+
+/* ==========================================================================
+   Manifiesto — la frase se llena palabra por palabra ligada al scroll.
+   El color de cada palabra es una mezcla entre el gris de reposo y su color
+   final, gobernada por --fill (0 → 1) desde components/SiteMotion.tsx. El
+   destino se declara acá y no en el JS: las palabras que cargan el peso de
+   la frase van en Navy (DESIGN.md § Colors), el resto en Tinta.
+   Con --fill en su valor inicial de 1 —sin JS, o con motion reducido— cada
+   palabra queda directamente en su color final.
+   ========================================================================== */
+[data-reveal="word"],
+.word__tail {
+  --word-ink: var(--ink);
+  color: color-mix(
+    in oklab,
+    var(--word-ink) calc(var(--fill) * 100%),
+    var(--word-rest)
+  );
+}
+
+[data-reveal="word"].word--accent {
+  --word-ink: var(--navy);
+}
+
+/* La puntuación final vive dentro de la última palabra para llenarse a su
+   mismo ritmo, pero aterriza en Tinta y no en Navy: el acento es de la frase
+   que carga el peso, no del punto que la cierra. Hereda --fill del span que
+   la contiene y solo redefine el destino. */
+.word__tail {
+  --word-ink: var(--ink);
+}
+
+/* ==========================================================================
+   Filas de capacidades (DESIGN.md § Components: "Filas de capacidades").
+   Ancho completo, divisor hairline arriba, nombre en Title a la izquierda,
+   etiquetas en Label a la derecha. Sin íconos, sin cards, sin porcentajes.
+   ========================================================================== */
+.cap-row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-block: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .cap-row {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+}
+
+.cap-row__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+
+/* Fila con divisor hairline, siempre en columna (a diferencia de .cap-row,
+   que pasa a fila a partir de 640px para separar nombre/etiquetas). La usan
+   las secciones "En curso" — label + valor pendiente, más un párrafo — y
+   Contacto, donde cada fila combina label + valor de contacto. */
+.hr-row {
+  position: relative;
+  padding-block: var(--space-4);
+}
+
+/* Divisores de fila. Van en pseudo-elementos y no en `border-top`/`bottom`
+   porque un borde no se puede escalar: acá la hairline se dibuja de izquierda
+   a derecha al entrar la fila, escalando en X según --rule
+   (components/SiteMotion.tsx). Sigue siendo 1px, sigue siendo un solo peso de
+   línea en todo el sitio (DESIGN.md § Shapes). */
+.cap-row::before,
+.hr-row::before,
+.cap-row:last-child::after,
+.hr-row:last-child::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: var(--hairline);
+  transform: scaleX(var(--rule));
+  transform-origin: left center;
+}
+
+.cap-row::before,
+.hr-row::before {
+  top: 0;
+}
+
+.cap-row:last-child::after,
+.hr-row:last-child::after {
+  bottom: 0;
+}
+
+/* ==========================================================================
+   Cards de proyecto (DESIGN.md § Components: "Cards de proyecto"). Sin
+   borde, sin sombra, sin radio: la imagen es la card. Hover: la imagen baja
+   de opacidad y el nombre pasa a Navy — una sola propiedad por transición.
+   ========================================================================== */
+.work-card__image {
+  /* Recorta el 6% de sobrante mientras la captura asienta su escala al
+     entrar (components/SiteMotion.tsx). Sin esto la imagen desborda la card
+     durante la animación. */
+  overflow: hidden;
+  transition: opacity 200ms ease;
+}
+
+/* Intercambio de captura por breakpoint. Va en media queries reales y no en
+   utilidades `sm:hidden` / `hidden sm:block` de Tailwind: con el override de
+   breakpoints de `@theme` de este proyecto, esas variantes no se generaban y
+   las DOS capturas quedaban en `display: block`, apilando una card de
+   1598px con la captura mobile a 520×1125. La desktop (1440×727, llena de
+   texto de UI chico) sería ilegible reducida a ~340px, así que abajo de 640
+   se muestra solo la mobile. */
+.shot-narrow {
+  display: block;
+}
+
+.shot-wide {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .shot-narrow {
+    display: none;
+  }
+
+  .shot-wide {
+    display: block;
+  }
+}
+
+.work-card:hover .work-card__image,
+.work-card:focus-within .work-card__image {
+  opacity: 0.85;
+}
+
+.work-card__name {
+  transition: color 200ms ease;
+}
+
+.work-card:hover .work-card__name,
+.work-card:focus-within .work-card__name {
+  color: var(--navy);
+}
+
+.work-card__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 3 / 2;
+  border: 1px solid var(--hairline);
+  color: var(--gray);
+  text-align: center;
+  padding: var(--space-3);
+}
+
+/* ==========================================================================
+   Formulario de contacto (DESIGN.md § Components → "Formulario de
+   contacto"). Vive dentro del campo Navy de `.section--contact`, así que
+   hereda `color: var(--bone)` de esa regla por cascada — ningún selector de
+   acá necesita repetirlo. Reusa `.hr-row` (definida arriba) para la fila de
+   cada campo: la hairline de esa clase ya lee `--hairline-on-navy` dentro
+   de `.section--contact` (regla de arriba), así que el formulario no
+   necesita su propia variante de línea.
+   ========================================================================== */
+.contact-form {
+  /* Ancho de lectura, no el de `.wrap` (DESIGN.md: "Ancho propio, acotado a
+     la medida de lectura, ~560px"): las hairlines de las filas terminan acá
+     y no en el margen de la sección, y el aire que sobra a la derecha bajo
+     el Display es la asimetría que DESIGN.md § Layout pide en toda la
+     página. */
+  max-width: 560px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  /* Más ajustado que el resto del sitio: presupuesto de una sola pantalla
+     (DESIGN.md § Contacto — eje centrado y una sola pantalla). */
+  gap: var(--space-1);
+}
+
+/* El input/textarea no tiene fondo, borde ni radio propio: es el "valor" de
+   la fila .hr-row, en Body — la única diferencia con una fila de texto es el
+   cursor al hacer foco (DESIGN.md). El reset global ya le da `color: inherit`
+   (regla `button, input, textarea, select` arriba), así que llega en Bone
+   sin declararlo acá. El foco visible lo resuelve `.section--contact
+   :focus-visible` (arriba, Bone en vez del Navy global — un outline Navy
+   sobre este campo Navy sería invisible): nada que agregar acá tampoco. */
+.contact-form__field {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  /* Sin resize libre en los dos ejes (DESIGN.md): un handle de resize
+     reintroduce la lectura de "objeto de UI" que el sistema evita acá. Solo
+     tiene efecto en el textarea; en el input es un no-op inocuo. */
+  resize: none;
+}
+
+.contact-form__field--textarea {
+  /* `rows={3}` en el JSX ya fija el alto por líneas; sin este mínimo el
+     textarea puede colapsar más angosto que su placeholder en Safari. */
+  min-height: 4.5em;
+}
+
+.contact-form__field::placeholder {
+  /* Bone al 70% sobre Navy: ≥4.5:1 medido (informe de verificación), con
+     margen — el placeholder es un ejemplo, no la única pista (la etiqueta
+     ya nombra el campo), así que puede ir un poco más tenue que el texto
+     tipeado sin cruzar el piso de AA. */
+  color: rgba(250, 247, 243, 0.7);
+}
+
+.contact-form__field[aria-invalid="true"] {
+  /* Sin color de error dedicado: el sistema no tiene rojo (DESIGN.md §
+     Colors, The Two Neutrals Rule) y el error ya se anuncia con texto +
+     aria-describedby, nunca solo por color. Un subrayado propio alcanza
+     como segunda señal visual sin inventar un tercer color. */
+  text-decoration: underline;
+  text-decoration-color: var(--bone);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.contact-form__error {
+  color: var(--bone);
+}
+
+/* "Visually hidden" del honeypot: fuera de pantalla sin `display: none`
+   (component comment en ContactForm.tsx explica el porqué). Misma técnica
+   que cualquier utilidad sr-only estándar — recorta a 1×1px en vez de
+   sacarlo del flujo, así el layout no se entera de que existe. */
+.contact-form__honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.contact-form__submit {
+  /* El sistema no tiene botones sólidos y no los estrena acá (DESIGN.md §
+     Shapes): es la misma hairline de 1px que el resto de lo interactivo,
+     sin relleno. Hover rellena Bone con texto Navy — pero la transición
+     anima SOLO `background-color`; `color` cambia de golpe, así que sigue
+     siendo una sola propiedad animada bajo 200ms (la excepción CSS de la
+     regla de motion, DESIGN.md § Components → Formulario). */
+  /* Centrado, no `flex-start`: toda la sección se apoya en el eje central
+     (DESIGN.md § Contacto — eje centrado y una sola pantalla), y un botón
+     anclado a la izquierda dentro de un bloque centrado deja el único
+     elemento accionable fuera del eje que ordena todo lo demás. */
+  align-self: center;
+  border: 1px solid var(--bone);
+  background-color: transparent;
+  color: var(--bone);
+  padding: var(--space-2) var(--space-4);
+  transition: background-color 180ms ease;
+}
+
+.contact-form__submit:hover:not(:disabled),
+.contact-form__submit:focus-visible {
+  background-color: var(--bone);
+  color: var(--navy);
+}
+
+.contact-form__submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.contact-form__legal {
+  color: var(--bone);
+  opacity: 0.8;
+  /* Mismo eje que el botón que tiene encima y que los iconos que tiene
+     debajo. Es la línea más silenciosa de la sección; alineada a la izquierda
+     era lo único que quebraba la simetría del bloque. */
+  text-align: center;
+}
+
+.contact-form__legal a {
+  color: var(--bone);
+}
+
+.contact-form__status {
+  /* `min-height` evita que el layout salte cuando el estado pasa de vacío
+     (reposo/enviando, que ya tiene su propio texto en el botón) a un
+     mensaje de una línea (enviado/error) — sin esto el submit y el aviso
+     legal se corren hacia arriba en el momento exacto en que el resultado
+     aparece. */
+  min-height: 1.2em;
+}
+
+/* ==========================================================================
+   Iconos de redes (DESIGN.md § Components → "Iconos de redes"). Reemplazan
+   las tres filas de texto que ocupaban media sección de contacto. Viven en
+   el mismo campo Navy y heredan Bone de `.section--contact` por cascada.
+   ========================================================================== */
+.social-icons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.social-icons__link {
+  /* Área clicable de 44×44 (DESIGN.md, WCAG 2.5.8) puesta directamente en el
+     tamaño del propio `<a>` — a diferencia de la nav pill (`.nav-pill__name`
+     arriba), acá no hace falta un pseudo-elemento invisible: la pill tiene
+     una silueta ajena que no puede crecer, el icono no tiene ninguna, así
+     que agrandar el enlace mismo ya es "sin chip de fondo" (DESIGN.md): el
+     área extra es transparente, no una superficie nueva. Radio 0 por el
+     reset global, sin excepción que pedir acá. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--bone);
+  /* Reposo Bone al 65%, hover Bone pleno — una sola propiedad, bajo 200ms
+     (DESIGN.md). Ni escala, ni rotación, ni fondo que aparece. */
+  opacity: 0.65;
+  transition: opacity 180ms ease;
+}
+
+.social-icons__link:hover,
+.social-icons__link:focus-visible {
+  opacity: 1;
+}
+
+.social-icons__icon {
+  width: 20px;
+  height: 20px;
+}
