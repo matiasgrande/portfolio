@@ -138,10 +138,10 @@ export function ModalProyecto({ proyecto, t, origen, alCerrar }: PropsModal) {
             </a>
           )}
         </div>
-        <button ref={botonCerrar} type="button" className="chip modal-cerrar" onClick={cerrar}>
-          {t.cerrar}
-        </button>
       </div>
+      <button ref={botonCerrar} type="button" className="chip modal-cerrar" onClick={cerrar}>
+        {t.cerrar}
+      </button>
     </div>
   );
 }

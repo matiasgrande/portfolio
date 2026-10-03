@@ -103,9 +103,9 @@ img{max-width:100%}
 .interruptor{position:absolute;pointer-events:auto;cursor:pointer;appearance:none;border:0;background:none;width:56px;height:56px;padding:0;color:var(--acento);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 
 /* Ventana de proyecto */
-.modal-fijo{position:absolute;inset:0;z-index:6000;display:flex;align-items:center;justify-content:center;padding:32px}
+.modal-fijo{position:fixed;inset:0;z-index:6000;display:flex;align-items:center;justify-content:center;padding:32px}
 .modal-fondo{position:absolute;inset:0;width:100%;height:100%;border:0;background:rgba(6,7,9,.84);cursor:default}
-.panel{position:relative;display:flex;flex-wrap:wrap;gap:32px 48px;align-items:flex-start;width:100%;max-height:100%;overflow:auto;background:#14161A;border:1px solid #2B3038;border-radius:10px;padding:36px;box-shadow:0 40px 90px rgba(0,0,0,.7)}
+.panel{position:relative;display:flex;flex-wrap:wrap;gap:32px 48px;align-items:flex-start;width:100%;max-height:100%;overflow-y:auto;overscroll-behavior:contain;background:#14161A;border:1px solid #2B3038;border-radius:10px;padding:36px;box-shadow:0 40px 90px rgba(0,0,0,.7)}
 .panel-izq{flex:1 1 320px;min-width:0;max-width:560px;display:flex;flex-direction:column;gap:16px}
 .panel-der{flex:1 1 300px;min-width:0}
 .panel video{width:100%;border-radius:6px;display:block;background:#000}
@@ -117,7 +117,7 @@ img{max-width:100%}
 .galeria{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px}
 .galeria img{flex:none;height:var(--alto,560px);width:auto;border-radius:6px;scroll-snap-align:start}
 .nota-ejemplo{font-size:11px;letter-spacing:.1em;color:#7C7A72}
-.modal-cerrar{position:absolute;top:12px;right:12px}
+.modal-cerrar{position:fixed;top:20px;right:20px;z-index:2;background:#14161A}
 
 /* ===== Modo lista ===== */
 .lista{max-width:1328px;margin:0 auto;padding:56px 56px 72px}
