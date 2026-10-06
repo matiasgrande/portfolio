@@ -37,6 +37,7 @@ img{max-width:100%}
 .chip:hover{border-color:var(--acento)}
 .chip[aria-pressed="true"]{background:#ECE6D6;color:#0B0C0E;border-color:#ECE6D6}
 .chip:focus-visible,.cta:focus-visible,.pieza:focus-visible,.tel-btn:focus-visible,.interruptor:focus-visible,.red:focus-visible{outline:2px dashed var(--acento);outline-offset:6px}
+button.cta{border:0;cursor:pointer;font-family:inherit}
 .cta{display:inline-flex;align-items:center;gap:12px;min-height:56px;padding:0 28px;background:var(--acento);color:#0B0C0E;font-weight:700;font-size:17px;text-decoration:none;border-radius:999px;transition:box-shadow .25s}
 .cta:hover{box-shadow:6px 6px 0 #ECE6D6}
 .enlace:hover{text-decoration:underline}
@@ -124,6 +125,10 @@ img{max-width:100%}
 .lista-item{display:flex;flex-wrap:wrap;gap:20px 40px;padding:32px 0;border-top:1px solid #2B3038}
 .lista-portada{flex:0 0 120px}
 .lista-portada img{width:120px;height:auto;border-radius:6px;display:block}
+.lista-portada-btn{appearance:none;border:0;background:none;padding:0;margin:0;cursor:pointer;position:relative;display:block;border-radius:6px;transition:transform .25s}
+.lista-portada-btn:hover{transform:translateY(-3px) rotate(-1deg)}
+.lista-portada-btn:focus-visible{outline:2px dashed var(--acento);outline-offset:6px}
+.lista-portada-btn .play{position:absolute;right:8px;bottom:8px;width:30px;height:30px;border-radius:50%;background:var(--acento);color:#0B0C0E;display:flex;align-items:center;justify-content:center}
 .lista-cuerpo{flex:1 1 300px;min-width:0}
 .lista-titulo{margin:10px 0 0;font-family:var(--fuente-titulo);font-weight:800;font-size:34px;line-height:1.05}
 .lista-texto{margin:14px 0 0;font-size:18px;line-height:1.6;color:#CFC9B9;max-width:40em;text-wrap:pretty}
@@ -147,7 +152,7 @@ img{max-width:100%}
 
 /* ===== Adaptación ===== */
 @media (pointer:coarse){
-  .pieza{touch-action:pan-y}
+  .pieza{touch-action:none}
   .cursor-anillo{display:none}
 }
 @media (max-width:760px){

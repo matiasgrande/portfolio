@@ -35,6 +35,8 @@ function construirTextos(es: boolean) {
       : 'Drag the pieces, throw them, open them. Move the flashlight: there are things hidden in the dark.',
     girarHint: es ? '↺ toca el teléfono' : '↺ tap the phone',
     cerrar: es ? 'Cerrar' : 'Close',
+    verDetalle: es ? 'Ver fotos y video' : 'See photos and video',
+    verVideo: es ? 'Ver video' : 'Watch video',
     listaTitulo: es ? 'Proyectos' : 'Projects',
     contactoTitulo: es ? '¿Construimos algo?' : 'Shall we build something?',
     contactoSub: es
@@ -77,6 +79,8 @@ export function obtenerTextos(idioma: Idioma): Textos {
   return construirTextos(idioma === 'es');
 }
 
+const VIDEO_ALMANAQUE = ruta('/video/almanaque-video.mp4');
+const POSTER_ALMANAQUE = ruta('/imagenes/almanaque-poster.jpg');
 const VIDEO_HYBRID = ruta('/video/hybrid-video.mp4');
 const POSTER_HYBRID = ruta('/imagenes/hybrid-poster.jpg');
 
@@ -102,6 +106,7 @@ export function obtenerProyectos(idioma: Idioma): Record<IdProyecto, Proyecto> {
         { src: img('alm-historial'), alt: 'Almanaque: historial' },
         { src: img('alm-noche'), alt: 'Almanaque: modo oscuro' },
       ],
+      video: { src: VIDEO_ALMANAQUE, poster: POSTER_ALMANAQUE, autoplay: true },
       portada: img('alm-tarjetas'),
       ancho: 1060,
     },
