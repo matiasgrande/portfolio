@@ -81,6 +81,10 @@ export function obtenerTextos(idioma: Idioma): Textos {
 
 const VIDEO_ALMANAQUE = ruta('/video/almanaque-video.mp4');
 const POSTER_ALMANAQUE = ruta('/imagenes/almanaque-poster.jpg');
+const VIDEO_DECANTS = ruta('/video/puredecants-video.mp4');
+const POSTER_DECANTS = ruta('/imagenes/puredecants-poster.jpg');
+const VIDEO_GLOBALFISH = ruta('/video/global-fish-video.mp4');
+const POSTER_GLOBALFISH = ruta('/imagenes/globalfish-poster.jpg');
 const VIDEO_HYBRID = ruta('/video/hybrid-video.mp4');
 const POSTER_HYBRID = ruta('/imagenes/hybrid-poster.jpg');
 
@@ -140,7 +144,9 @@ export function obtenerProyectos(idioma: Idioma): Record<IdProyecto, Proyecto> {
       etiquetas: es ? ['Next.js', 'Tailwind', 'Exportación estática'] : ['Next.js', 'Tailwind', 'Static export'],
       enlace: { url: 'https://pure-decants.vercel.app/', etiqueta: es ? 'Ver el sitio' : 'Visit the site' },
       imagenes: [],
-      ancho: 640,
+      video: { src: VIDEO_DECANTS, poster: POSTER_DECANTS, autoplay: true },
+      portada: POSTER_DECANTS,
+      ancho: 1060,
     },
     fre: {
       id: 'fre',
@@ -152,7 +158,9 @@ export function obtenerProyectos(idioma: Idioma): Record<IdProyecto, Proyecto> {
       etiquetas: es ? ['Diseño propio', 'WhatsApp', 'Vercel'] : ['Custom design', 'WhatsApp', 'Vercel'],
       enlace: { url: 'https://global-fish.vercel.app/', etiqueta: es ? 'Ver el sitio' : 'Visit the site' },
       imagenes: [],
-      ancho: 640,
+      video: { src: VIDEO_GLOBALFISH, poster: POSTER_GLOBALFISH, autoplay: true },
+      portada: POSTER_GLOBALFISH,
+      ancho: 1060,
     },
     age: {
       id: 'age',

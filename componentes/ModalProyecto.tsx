@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { gsap, prefiereMovimientoReducido } from '@/lib/gsap';
 import type { Textos } from '@/lib/contenido';
 import type { Proyecto } from '@/lib/tipos';
@@ -95,12 +96,16 @@ export function ModalProyecto({ proyecto, t, origen, alCerrar }: PropsModal) {
   const tieneGaleria = proyecto.imagenes.length > 0;
   const tieneIzquierda = tieneGaleria || !!proyecto.video;
 
-  return (
+  // El modal se monta en la raíz de la página (no dentro de la mesa) para quedar por encima de todas las secciones
+  // y conservar las variables de color de acento, que viven en .raiz
+  const destino = document.querySelector<HTMLElement>('.raiz') ?? document.body;
+
+  return createPortal(
     <div className="modal-fijo" role="dialog" aria-modal="true" aria-label={proyecto.titulo}>
       <button ref={fondo} type="button" className="modal-fondo" aria-label={t.cerrar} onClick={cerrar} />
       <div ref={panel} className="panel" style={{ maxWidth: proyecto.ancho }}>
         {tieneIzquierda && (
-          <div className="panel-izq" data-revela>
+          <div className={`panel-izq${tieneGaleria ? '' : ' solo-video'}`} data-revela>
             {proyecto.video && (
               <video
                 ref={video}
@@ -142,6 +147,7 @@ export function ModalProyecto({ proyecto, t, origen, alCerrar }: PropsModal) {
       <button ref={botonCerrar} type="button" className="chip modal-cerrar" onClick={cerrar}>
         {t.cerrar}
       </button>
-    </div>
+    </div>,
+    destino,
   );
 }
